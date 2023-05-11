@@ -17,7 +17,7 @@ generar_blacklist_times_run = 0
 blacklisted_destinations = []
 generar_whitelist_times_run = 0
 whitelisted_destinations = []
-destinos_interesantes_detectados = [] # soft blacklist
+lista_destinos_interesantes_detectados = [] # soft blacklist
 
 # First of all, generate an array called "all_pairings" where all pairings are stored for easy processing
 all_pairings = []
@@ -26,6 +26,9 @@ sh = sheetfile.sheet_by_index(0)
 for rownum in range(sh.nrows):
     raw_pairing=sh.cell(rownum,0),sh.cell(rownum,1)
     all_pairings.append(str(raw_pairing).replace('text:', ''))
+
+for pairing in all_pairings:
+    print(pairing + "\r\n")
 
 
 def showHelpPanel():
@@ -106,21 +109,25 @@ def soft_blacklist():
         generar_blacklist()
     for line in all_pairings:
         destinos_de_la_linea = []
+        destinos_interesantes_de_la_linea = []
         for word in line.split():
             if len(word) == 3 and "*" not in word:
                 destinos_de_la_linea.append(word)
     #     #print("Linea original: " + linea_raw)
     #     #print ("Destinos detectados: " + str(destinos_de_la_linea))
         for destino in destinos_de_la_linea:
-            if destino not in blacklisted_destinations:
-                print("[*] Linea buena detectada!! ---> " + line + "(Destino detectado: " + destino + ")\r\n")
-                if destino not in destinos_interesantes_detectados:
-                    destinos_interesantes_detectados.append(destino)
-                break
+            if destino not in blacklisted_destinations and destino not in destinos_interesantes_de_la_linea:
+                destinos_interesantes_de_la_linea.append(destino)
+                if destino not in lista_destinos_interesantes_detectados:
+                    lista_destinos_interesantes_detectados.append(destino)
             else:
                 continue
-    print("Lista de destinos interesantes detectados: " + str(destinos_interesantes_detectados))
-    return(destinos_interesantes_detectados)
+        if len(destinos_interesantes_de_la_linea) == 1:
+            print("[*] Linea buena detectada!! ---> " + line + " (Destino detectado: " + str(destinos_interesantes_de_la_linea) + ")\r\n")
+        elif len(destinos_interesantes_de_la_linea) >= 2:
+            print("[*] Linea buena detectada!! ---> " + line + " (Destinos detectados: " + str(destinos_interesantes_de_la_linea) + ")\r\n")
+    print("Lista de destinos interesantes detectados: " + str(lista_destinos_interesantes_detectados))
+    return(lista_destinos_interesantes_detectados)
 
 def hard_blacklist():
     # Si no se ha generado la blacklist, hacerlo
