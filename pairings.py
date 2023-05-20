@@ -3,10 +3,11 @@
 import xlrd
 import sys
 from tabulate import tabulate
+import re
 
-# Check if file is provided
+# Check if file is provided
 if len(sys.argv) != 2:
-    print("[*] Usage: python3 pairings.py <path_to_xls_file_with_pairings>")
+    print("[*] Usage: python pairings.py <path_to_xls_file_with_pairings>")
     print ("[!] You must specify xls file as an argument")
     exit()
 else:
@@ -26,18 +27,22 @@ sh = sheetfile.sheet_by_index(0)
 for rownum in range(sh.nrows):
     raw_pairing=sh.cell(rownum,0),sh.cell(rownum,1)
     all_pairings.append(str(raw_pairing).replace('text:', ''))
+# Eliminar línea vacía 'Pairing', 'Cupo/Pujas
+del all_pairings[0]
 
-for pairing in all_pairings:
-    print(pairing + "\r\n")
+# for pairing in all_pairings:
+#     print(pairing + "\r\n")
 
 
 def showHelpPanel():
     firstRow = ["Opción", "Función"]
     opciones = [    
-        [1, "Filtrar líneas tengn algún destino distinto a los especificados (soft blacklist)"],
+        [1, "Filtrar líneas tengan algún destino distinto a los especificados (soft blacklist)"],
         [2, "Filtrar líneas que sólo tengan destinos destinos a los especificados (hard blacklist)"],
         [3, "Filtrar líneas que pasen por destinos concretos (soft whitelist)"],
         [4, "Filtrar líneas que sólo pasen por destinos concretos (hard whitelist)"],
+        [5, "Filtrar líneas que tengan un único salto el primer día"],
+        [6, "Filtrar líneas que tengan un único salto el último día"],
         [0, "Salir"]
     ]
     print(tabulate(opciones, headers=firstRow, tablefmt="grid"))
@@ -50,6 +55,10 @@ def showHelpPanel():
         soft_whitelist()
     elif user_option == 4:
         hard_whitelist()
+    elif user_option == 5:
+        linea_1xx()
+    elif user_option == 6:
+        linea_xx1()
     else:
         exit()
 
@@ -104,7 +113,7 @@ def generar_whitelist():
     return(whitelisted_destinations)
 
 def soft_blacklist():
-    # Si no se ha generado la blacklist, hacerlo
+    # Si no se ha generado la blacklist, hacerlo
     if not blacklisted_destinations:
         generar_blacklist()
     for line in all_pairings:
@@ -130,7 +139,7 @@ def soft_blacklist():
     return(lista_destinos_interesantes_detectados)
 
 def hard_blacklist():
-    # Si no se ha generado la blacklist, hacerlo
+    # Si no se ha generado la blacklist, hacerlo
     if not blacklisted_destinations:
         generar_blacklist()
     # Eliminar MAD de la blacklist, ya que, si hard blacklisteamos Madrid, ninguna línea es válida
@@ -183,7 +192,55 @@ def hard_whitelist():
         if matching_lineas == 1:
             print("No hay ninguna línea que pase exclusivamente por los destinos especificados")
 
-showHelpPanel()
+def linea_1xx():
+    # Esta función debe encontrar todas las líneas que tengan un único salto el primer día
+    successful = 0
+    for line in all_pairings:
+        pairing_dates = []
+        # Crear array con todas las legs de la línea, correctamente parseado (curated)
+        legs = str(line.replace("('", '')).split("*")
+        del legs[-1]
+        # Usa regex para extraer fechas)
+        pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
+        first_leg_departure_date = pairing_dates[0]
+        first_leg_arrival_date = pairing_dates[1]
+        second_leg_departure_date = pairing_dates[2]
+        second_leg_arrival_date = pairing_dates[3]
+        # Lógica de filtrado
+        if first_leg_departure_date == first_leg_arrival_date and second_leg_departure_date == second_leg_arrival_date and first_leg_arrival_date != second_leg_departure_date:
+            successful = 1
+            print("Linea con un único salto el primer día: " + line)
+            for leg in legs:
+                print("Leg: " + leg)
+            print("\r\n")
+    if successful == 0:
+        print("No se han encontrado líneas con un único salto el primer día")
 
-# destinos_de_la_linea = ["MAD", "LCG", "MAD", "VIE", "VIE"]
-# whitelisted_destinations = ["VCE", "CFU", "FNC", "PDL"]
+
+def linea_xx1():
+    # Esta función debe encontrar todas las líneas que tengan un único salto el último día, siendo prácticamente libre
+    successful = 0
+    for line in all_pairings:
+        pairing_dates = []
+        # Crear array con todas las legs de la línea, correctamente parseado (curated)
+        legs = str(line.replace("('", '')).split("*")
+        del legs[-1]
+        # Usa regex para extraer fechas)
+        pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
+        last_leg_arrival_date = pairing_dates[-1]
+        last_leg_departure_date = pairing_dates[-2]
+        second_to_last_leg_arrival_date = pairing_dates[-3]
+        second_to_last_leg_departure_date = pairing_dates[-4]
+        # Lógica de filtrado
+        if last_leg_arrival_date == last_leg_departure_date and second_to_last_leg_arrival_date == second_to_last_leg_departure_date and last_leg_departure_date != second_to_last_leg_arrival_date:
+            successful = 1
+            print("Linea con un único salto el último día: " + line)
+            for leg in legs:
+                print("Leg: " + leg)
+            print("\r\n")
+    if successful == 0:
+        print("No se han encontrado líneas con un único salto el último día")
+
+
+
+showHelpPanel()
