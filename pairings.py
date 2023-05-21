@@ -206,7 +206,7 @@ def soft_whitelist():
         print("Vaya! No se ha detectado ninguna línea que tenga algún destino escogido")
 
 def hard_whitelist():
-    matching_lineas = 0
+    successful = 0
     if not whitelisted_destinations:
         generar_whitelist()
     # Añadir Madrid, ya que, si Madrid no está dentro de la whitelist, ninguna línea será válida
@@ -221,11 +221,11 @@ def hard_whitelist():
         if set(destinos_de_la_linea).issubset(set(whitelisted_destinations)):
             print("Se ha detectado una línea que sólo tiene destinos elegidos: ")
             imprimir_linea(line)
-            matching_lineas += 1
+            successful = 1
         else:
             continue
-        if matching_lineas == 1:
-            print("No hay ninguna línea que pase exclusivamente por los destinos especificados")
+    if successful == 0:
+        print("\r\nVaya! No hay ninguna línea que pase exclusivamente por los destinos especificados")
 
 def linea_1xx():
     # Esta función debe encontrar todas las líneas que tengan un único salto el primer día
