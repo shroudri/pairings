@@ -48,19 +48,38 @@ def showHelpPanel():
     print(tabulate(opciones, headers=firstRow, tablefmt="grid"))
     user_option = int(input("Escriba su número de opción: "))
     if user_option == 1:
+        print("\r\n")
         soft_blacklist()
     elif user_option == 2:   
+        print("\r\n")
         hard_blacklist()
     elif user_option == 3:
+        print("\r\n")
         soft_whitelist()
     elif user_option == 4:
+        print("\r\n")
         hard_whitelist()
     elif user_option == 5:
+        print("\r\n")
         linea_1xx()
     elif user_option == 6:
+        print("\r\n")
         linea_xx1()
     else:
         exit()
+
+def imprimir_linea(line):
+    # Esta función te imprime por pantalla la línea, el ID de pairing, la flota y las legs una por una
+    pairing_id = re.findall("I\d{4}", str(line))
+    fleet = re.findall("A-\d{3}\s", str(line))
+    legs = str(line.replace("('", '')).replace(pairing_id[0], '').replace(fleet[0], '').split("*")
+    del legs[-1]
+    print("Linea: " + line)
+    print("\t [*] Pairing y flota: " + pairing_id[0] + " " + fleet[0])
+    #  %d %s' % (a, b))
+    for leg in legs:
+        print("\t [-] Leg: " + leg)
+    print("\r\n")
 
 def generar_blacklist():
     global blacklisted_destinations
@@ -132,14 +151,17 @@ def soft_blacklist():
             else:
                 continue
         if len(destinos_interesantes_de_la_linea) == 1:
-            print("[*] Linea buena detectada!! ---> " + line + " (Destino detectado: " + str(destinos_interesantes_de_la_linea) + ")\r\n")
+            print("Destino detectado: " + str(destinos_interesantes_de_la_linea))
+            imprimir_linea(line)
         elif len(destinos_interesantes_de_la_linea) >= 2:
-            print("[*] Linea buena detectada!! ---> " + line + " (Destinos detectados: " + str(destinos_interesantes_de_la_linea) + ")\r\n")
+            print("Destinos detectados: " + str(destinos_interesantes_de_la_linea))
+            imprimir_linea(line)
     print("Lista de destinos interesantes detectados: " + str(lista_destinos_interesantes_detectados))
     return(lista_destinos_interesantes_detectados)
 
 def hard_blacklist():
     # Si no se ha generado la blacklist, hacerlo
+    successful = 0
     if not blacklisted_destinations:
         generar_blacklist()
     # Eliminar MAD de la blacklist, ya que, si hard blacklisteamos Madrid, ninguna línea es válida
@@ -154,9 +176,14 @@ def hard_blacklist():
         if matches: 
             continue
         else:
-            print("Esta línea no tiene ningún destino blacklisteado: " + line)
+            successful = 1
+            print("Línea detectada sin ningún destino blacklisteado: ")
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No hemos detectado ninguna línea que no pase por ninguno de los destinos especificados")
 
 def soft_whitelist():
+    successful = 0
     if not whitelisted_destinations:
         generar_whitelist()
     if "MAD" in whitelisted_destinations:
@@ -169,10 +196,14 @@ def soft_whitelist():
     #print(str(destinos_de_la_linea))
         for destino in destinos_de_la_linea:
             if destino in whitelisted_destinations:
-                print("Línea: " + line + " (Destino coincidente: " + destino + ")")
+                successful = 1
+                print("Se ha detectado una línea con al menos un destino elegido: " + destino)
+                imprimir_linea(line)
                 break
             else:
                 continue
+    if successful == 0:
+        print("Vaya! No se ha detectado ninguna línea que tenga algún destino escogido")
 
 def hard_whitelist():
     matching_lineas = 0
@@ -185,7 +216,8 @@ def hard_whitelist():
                 destinos_de_la_linea.append(word)
     #print(str(destinos_de_la_linea))
         if set(destinos_de_la_linea).issubset(set(whitelisted_destinations)):
-            print("Línea: " + line)
+            print("Se ha detectado una línea que sólo tiene destinos elegidos: ")
+            imprimir_linea(line)
             matching_lineas += 1
         else:
             continue
@@ -209,13 +241,10 @@ def linea_1xx():
         # Lógica de filtrado
         if first_leg_departure_date == first_leg_arrival_date and second_leg_departure_date == second_leg_arrival_date and first_leg_arrival_date != second_leg_departure_date:
             successful = 1
-            print("Linea con un único salto el primer día: " + line)
-            for leg in legs:
-                print("Leg: " + leg)
-            print("\r\n")
+            print("Se ha detectado una línea con un único salto el primer día")
+            imprimir_linea(line)
     if successful == 0:
         print("No se han encontrado líneas con un único salto el primer día")
-
 
 def linea_xx1():
     # Esta función debe encontrar todas las líneas que tengan un único salto el último día, siendo prácticamente libre
@@ -234,13 +263,9 @@ def linea_xx1():
         # Lógica de filtrado
         if last_leg_arrival_date == last_leg_departure_date and second_to_last_leg_arrival_date == second_to_last_leg_departure_date and last_leg_departure_date != second_to_last_leg_arrival_date:
             successful = 1
-            print("Linea con un único salto el último día: " + line)
-            for leg in legs:
-                print("Leg: " + leg)
-            print("\r\n")
+            print("Se ha detectado una línea con un único salto el último día: ")
+            imprimir_linea(line)
     if successful == 0:
         print("No se han encontrado líneas con un único salto el último día")
-
-
 
 showHelpPanel()
