@@ -209,6 +209,9 @@ def hard_whitelist():
     matching_lineas = 0
     if not whitelisted_destinations:
         generar_whitelist()
+    # Añadir Madrid, ya que, si Madrid no está dentro de la whitelist, ninguna línea será válida
+    if "MAD" not in whitelisted_destinations:
+        whitelisted_destinations.append("MAD")
     for line in all_pairings:
         destinos_de_la_linea = []
         for word in line.split():
