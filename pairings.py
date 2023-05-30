@@ -43,7 +43,8 @@ def showHelpPanel():
         [4, "Filtrar líneas que sólo pasen por destinos concretos (hard whitelist)"],
         [5, "Filtrar líneas que tengan un único salto el primer día"],
         [6, "Filtrar líneas que tengan un único salto el último día"],
-        [7, "Filtrar líneas que tengan un único salto el último día y además sean de 4 días"],
+        [7, "Filtrar líneas que tengan un único salto el último día, y además sean de 4 días"],
+        [8, "Filtrar líneas que tengan un único salto el último día, y además acaben un día específico"],
         [0, "Salir"]
     ]
     print(tabulate(opciones, headers=firstRow, tablefmt="grid"))
@@ -65,12 +66,49 @@ def showHelpPanel():
         linea_1xx()
     elif user_option == 6:
         print("\r\n")
-        linea_xx1()
+        linea_x1()
     elif user_option == 7:
         print("\r\n")
-        linea_321()
+        linea_xxx1()
+    elif user_option == 8:
+        print("\r\n")
+        linea_x1_date()
     else:
         exit()
+
+def calcular_dias_linea(linea):
+    # Crear array con todas las legs de la línea, correctamente parseado (curated)
+    legs = str(linea.replace("('", '')).split("*")
+    del legs[-1]
+    # Usa regex para extraer fechas)
+    pairing_dates_raw = re.findall("\d{2}[A-Z]{3}", str(legs))
+    pairing_dates_sorted = sorted(set(pairing_dates_raw))
+    return(len(pairing_dates_sorted))
+    
+def termina_con_un_solo_salto(linea):
+    pairing_dates = []
+    legs = str(linea.replace("('", '')).split("*")
+    del legs[-1]
+    # Usa regex para extraer fechas)
+    pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
+    last_leg_arrival_date = pairing_dates[-1]
+    last_leg_departure_date = pairing_dates[-2]
+    second_to_last_leg_arrival_date = pairing_dates[-3]
+    second_to_last_leg_departure_date = pairing_dates[-4]
+    # Lógica de filtrado
+    if last_leg_arrival_date == last_leg_departure_date and second_to_last_leg_arrival_date == second_to_last_leg_departure_date and last_leg_departure_date != second_to_last_leg_arrival_date:
+        return True
+    else:
+        return False
+
+def calcular_ultimo_dia_de_linea(line):
+    pairing_dates = []
+    legs = str(line.replace("('", '')).split("*")
+    del legs[-1]
+    # Usa regex para extraer fechas)
+    pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
+    last_leg_arrival_date = pairing_dates[-1]
+    return(last_leg_arrival_date) 
 
 def imprimir_linea(line):
     # Esta función te imprime por pantalla la línea, el ID de pairing, la flota y las legs una por una
@@ -231,31 +269,6 @@ def hard_whitelist():
     if successful == 0:
         print("\r\nVaya! No hay ninguna línea que pase exclusivamente por los destinos especificados")
 
-def termina_con_un_solo_salto(linea):
-    pairing_dates = []
-    legs = str(linea.replace("('", '')).split("*")
-    del legs[-1]
-    # Usa regex para extraer fechas)
-    pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
-    last_leg_arrival_date = pairing_dates[-1]
-    last_leg_departure_date = pairing_dates[-2]
-    second_to_last_leg_arrival_date = pairing_dates[-3]
-    second_to_last_leg_departure_date = pairing_dates[-4]
-    # Lógica de filtrado
-    if last_leg_arrival_date == last_leg_departure_date and second_to_last_leg_arrival_date == second_to_last_leg_departure_date and last_leg_departure_date != second_to_last_leg_arrival_date:
-        return True
-    else:
-        return False
-
-def calcular_dias_linea(linea):
-    # Crear array con todas las legs de la línea, correctamente parseado (curated)
-    legs = str(linea.replace("('", '')).split("*")
-    del legs[-1]
-    # Usa regex para extraer fechas)
-    pairing_dates_raw = re.findall("\d{2}[A-Z]{3}", str(legs))
-    pairing_dates_sorted = sorted(set(pairing_dates_raw))
-    return(len(pairing_dates_sorted))
-
 def linea_1xx():
     # Esta función debe encontrar todas las líneas que tengan un único salto el primer día
     successful = 0
@@ -278,7 +291,7 @@ def linea_1xx():
     if successful == 0:
         print("No se han encontrado líneas con un único salto el primer día")
 
-def linea_xx1():
+def linea_x1():
     # Esta función debe encontrar todas las líneas que tengan un único salto el último día, siendo prácticamente libre
     successful = 0
     for line in all_pairings:
@@ -289,12 +302,26 @@ def linea_xx1():
     if successful == 0:
         print("No se han encontrado líneas con un único salto el último día")
 
-def linea_321():
+def linea_xxx1():
+    successful = 0
     for line in all_pairings:
         if calcular_dias_linea(line) == 4 and termina_con_un_solo_salto(line):
+            successful = 1
             imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No se han detectado líneas con la duración especificada y que acaben en un sólo salto")
     # for line in all_pairings:
     #     if termina_con_un_solo_salto(line):
 
+def linea_x1_date():
+    successful = 0
+    target_day_raw = input("Escribe el día en el que quieres que acabe la línea (sólo el número de día): ")
+    target_day = target_day_raw.zfill(2)
+    for line in all_pairings:
+         if target_day in calcular_ultimo_dia_de_linea(line) and termina_con_un_solo_salto(line):
+            successful = 1
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No se han detectado líneas que acaben con un único salto el día especificado")
 
 showHelpPanel()
