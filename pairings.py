@@ -4,6 +4,7 @@ import xlrd
 import sys
 from tabulate import tabulate
 import re
+from datetime import datetime, time
 
 # Check if file is provided
 if len(sys.argv) != 2:
@@ -42,9 +43,12 @@ def showHelpPanel():
         [3, "Filtrar líneas que pasen por destinos concretos (soft whitelist)"],
         [4, "Filtrar líneas que sólo pasen por destinos concretos (hard whitelist)"],
         [5, "Filtrar líneas que tengan un único salto el primer día"],
-        [6, "Filtrar líneas que tengan un único salto el último día"],
-        [7, "Filtrar líneas que tengan un único salto el último día, y además sean de 4 días"],
-        [8, "Filtrar líneas que tengan un único salto el último día, y además acaben un día específico"],
+        [6, "Filtrar líneas que tengan un único salto el primer día, y además ese día tenga pernocta en un destino concreto"],
+        [7, "Filtrar líneas que tengan un único salto el último día"],
+        [8, "Filtrar líneas que tengan un único salto el último día, y además sean de 4 días"],
+        [9, "Filtrar líneas que tengan un único salto el último día, y además acaben un día específico"],
+        [10, "Filtrar líneas cuyo último día aterrice más tarde de las 2330 LT"],
+        [11, "Filtrar líneas cuyo primer día despeguen tarde"],
         [0, "Salir"]
     ]
     print(tabulate(opciones, headers=firstRow, tablefmt="grid"))
@@ -66,25 +70,74 @@ def showHelpPanel():
         linea_1xx()
     elif user_option == 6:
         print("\r\n")
-        linea_x1()
+        linea_1_pernocta_x()
     elif user_option == 7:
         print("\r\n")
-        linea_xxx1()
+        linea_x1()
     elif user_option == 8:
         print("\r\n")
+        linea_xxx1()
+    elif user_option == 9:
+        print("\r\n")
         linea_x1_date()
+    elif user_option == 10:
+        print("\r\n")
+        linea_llega_post_2330()
+    elif user_option == 11:
+        print("\r\n")
+        linea_firma_tarde()
     else:
         exit()
 
-def calcular_dias_linea(linea):
+def devolver_legs_de_la_linea(line):
     # Crear array con todas las legs de la línea, correctamente parseado (curated)
-    legs = str(linea.replace("('", '')).split("*")
+    legs = str(line.replace("('", '')).split("*")
+    del legs[-1]    
+    return(legs)
+
+def devolver_longitud_linea(line):
+    # Crear array con todas las legs de la línea, correctamente parseado (curated)
+    legs = str(line.replace("('", '')).split("*")
     del legs[-1]
     # Usa regex para extraer fechas)
     pairing_dates_raw = re.findall("\d{2}[A-Z]{3}", str(legs))
     pairing_dates_sorted = sorted(set(pairing_dates_raw))
     return(len(pairing_dates_sorted))
-    
+
+def devolver_fechas_linea(line):
+    # Crear array con todas las legs de la línea, correctamente parseado (curated)
+    legs = str(line.replace("('", '')).split("*")
+    del legs[-1]
+    # Usa regex para extraer fechas)
+    pairing_dates_raw = re.findall("\d{2}[A-Z]{3}", str(legs))
+    pairing_dates_sorted = sorted(set(pairing_dates_raw))
+    return(pairing_dates_sorted)
+
+def devolver_destinos_linea(line):
+    destinos_de_la_linea = []
+    for word in line.split():
+        if len(word) == 3 and "*" not in word:
+            destinos_de_la_linea.append(word)
+    #print(str(destinos_de_la_linea))
+    return(destinos_de_la_linea)
+
+def empieza_con_un_solo_salto(line):
+    pairing_dates = []
+    # Crear array con todas las legs de la línea, correctamente parseado (curated)
+    legs = str(line.replace("('", '')).split("*")
+    del legs[-1]
+    # Usa regex para extraer fechas)
+    pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
+    first_leg_departure_date = pairing_dates[0]
+    first_leg_arrival_date = pairing_dates[1]
+    second_leg_departure_date = pairing_dates[2]
+    second_leg_arrival_date = pairing_dates[3]
+    # Lógica de filtrado
+    if first_leg_departure_date == first_leg_arrival_date and second_leg_departure_date == second_leg_arrival_date and first_leg_arrival_date != second_leg_departure_date:
+        return True
+    else:
+        return False
+
 def termina_con_un_solo_salto(linea):
     pairing_dates = []
     legs = str(linea.replace("('", '')).split("*")
@@ -101,7 +154,7 @@ def termina_con_un_solo_salto(linea):
     else:
         return False
 
-def calcular_ultimo_dia_de_linea(line):
+def devolver_ultimo_dia_de_linea(line):
     pairing_dates = []
     legs = str(line.replace("('", '')).split("*")
     del legs[-1]
@@ -273,24 +326,27 @@ def linea_1xx():
     # Esta función debe encontrar todas las líneas que tengan un único salto el primer día
     successful = 0
     for line in all_pairings:
-        pairing_dates = []
-        # Crear array con todas las legs de la línea, correctamente parseado (curated)
-        legs = str(line.replace("('", '')).split("*")
-        del legs[-1]
-        # Usa regex para extraer fechas)
-        pairing_dates = re.findall("\d{2}[A-Z]{3}", str(legs))
-        first_leg_departure_date = pairing_dates[0]
-        first_leg_arrival_date = pairing_dates[1]
-        second_leg_departure_date = pairing_dates[2]
-        second_leg_arrival_date = pairing_dates[3]
-        # Lógica de filtrado
-        if first_leg_departure_date == first_leg_arrival_date and second_leg_departure_date == second_leg_arrival_date and first_leg_arrival_date != second_leg_departure_date:
+        if empieza_con_un_solo_salto(line):
             successful = 1
-            print("Se ha detectado una línea con un único salto el primer día")
             imprimir_linea(line)
     if successful == 0:
-        print("No se han encontrado líneas con un único salto el primer día")
+        print("Vaya! No hay líneas que comiencen con un solo salto")
 
+def linea_1_pernocta_x():
+    successful = 0
+    if not whitelisted_destinations:
+        generar_whitelist()
+    # Eliminar Madrid, ya que Madrid no va a ser un destino de pernocta (es la base)
+    if "MAD" in whitelisted_destinations:
+        whitelisted_destinations.remove("MAD")
+    for line in all_pairings:
+        destinos_de_la_linea = devolver_destinos_linea(line)
+        if empieza_con_un_solo_salto(line) and destinos_de_la_linea[1] in whitelisted_destinations:
+            successful = 1
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No hay líneas que comiencen con un único salto y tengan pernocta el primer día en algún destino especificado :(")
+          
 def linea_x1():
     # Esta función debe encontrar todas las líneas que tengan un único salto el último día, siendo prácticamente libre
     successful = 0
@@ -305,7 +361,7 @@ def linea_x1():
 def linea_xxx1():
     successful = 0
     for line in all_pairings:
-        if calcular_dias_linea(line) == 4 and termina_con_un_solo_salto(line):
+        if devolver_longitud_linea(line) == 4 and termina_con_un_solo_salto(line):
             successful = 1
             imprimir_linea(line)
     if successful == 0:
@@ -318,10 +374,38 @@ def linea_x1_date():
     target_day_raw = input("Escribe el día en el que quieres que acabe la línea (sólo el número de día): ")
     target_day = target_day_raw.zfill(2)
     for line in all_pairings:
-         if target_day in calcular_ultimo_dia_de_linea(line) and termina_con_un_solo_salto(line):
+         if target_day in devolver_ultimo_dia_de_linea(line) and termina_con_un_solo_salto(line):
             successful = 1
             imprimir_linea(line)
     if successful == 0:
         print("Vaya! No se han detectado líneas que acaben con un único salto el día especificado")
+
+def linea_llega_post_2330():
+    successful = 0
+    for line in all_pairings:
+        legs_de_la_linea = devolver_legs_de_la_linea(line)
+        horas_de_la_linea = re.findall("\d{2}\:\d{2}", str(legs_de_la_linea))
+        landing_time_str = horas_de_la_linea[-1]
+        landing_time = datetime.strptime(landing_time_str, '%H:%M').time()
+        #print("Landing time: " + landing_time).
+        if landing_time >= time(23,30) or landing_time <= time(6,00):
+            successful = 1
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No se han encontrado líneas que termínen más allá de la medianoche")
+
+def linea_firma_tarde():
+    successful = 0
+    for line in all_pairings:
+        legs_de_la_linea = devolver_legs_de_la_linea(line)
+        horas_de_la_linea = re.findall("\d{2}\:\d{2}", str(legs_de_la_linea))
+        first_day_tot_str = horas_de_la_linea[0]
+        first_day_tot = datetime.strptime(first_day_tot_str, '%H:%M').time()
+        #print("Landing time: " + landing_time).
+        if first_day_tot >= time(18,30):
+            successful = 1
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No se han encontrado líneas que termínen más allá de la medianoche") 
 
 showHelpPanel()
