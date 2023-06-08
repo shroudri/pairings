@@ -42,13 +42,15 @@ def showHelpPanel():
         [2, "Filtrar líneas que sólo tengan destinos destinos a los especificados (hard blacklist)"],
         [3, "Filtrar líneas que pasen por destinos concretos (soft whitelist)"],
         [4, "Filtrar líneas que sólo pasen por destinos concretos (hard whitelist)"],
-        [5, "Filtrar líneas que tengan un único salto el primer día"],
-        [6, "Filtrar líneas que tengan un único salto el primer día, y además ese día tenga pernocta en un destino concreto"],
-        [7, "Filtrar líneas que tengan un único salto el último día"],
-        [8, "Filtrar líneas que tengan un único salto el último día, y además sean de 4 días"],
-        [9, "Filtrar líneas que tengan un único salto el último día, y además acaben un día específico"],
-        [10, "Filtrar líneas cuyo último día aterrice más tarde de las 2330 LT"],
-        [11, "Filtrar líneas cuyo primer día despeguen tarde"],
+        [5, "Filtrar líneas que firmen tarde el primer día"],
+        [6, "Filtrar líneas que tengan un único salto el primer día"],
+        [7, "Filtrar líneas que tengan un único salto el primer día, y además ese día tenga pernocta en un destino concreto"],
+        [8, "Filtrar líneas que tengan un único salto el último día"],
+        [9, "Filtrar líneas que tengan un único salto el último día, y además sean de 4 días"],
+        [10, "Filtrar líneas que tengan un único salto el último día, y además acaben un día específico"],
+        [11, "Filtrar líneas que acaben antes de las 12:00 LT"],
+        [12, "Filtrar líneas que acaben más tarde de las 23:30 LT"],
+
         [0, "Salir"]
     ]
     print(tabulate(opciones, headers=firstRow, tablefmt="grid"))
@@ -67,25 +69,29 @@ def showHelpPanel():
         hard_whitelist()
     elif user_option == 5:
         print("\r\n")
-        linea_1xx()
+        linea_firma_tarde()
     elif user_option == 6:
         print("\r\n")
-        linea_1_pernocta_x()
+        linea_1xx()
     elif user_option == 7:
         print("\r\n")
-        linea_x1()
+        linea_1_pernocta_x()
     elif user_option == 8:
         print("\r\n")
-        linea_xxx1()
+        linea_x1()
     elif user_option == 9:
         print("\r\n")
-        linea_x1_date()
+        linea_xxx1()
     elif user_option == 10:
         print("\r\n")
-        linea_llega_post_2330()
+        linea_x1_date()
     elif user_option == 11:
         print("\r\n")
-        linea_firma_tarde()
+        linea_llega_antes_de_1200()
+    elif user_option == 12:
+        print("\r\n")
+        linea_llega_post_2330()
+
     else:
         exit()
 
@@ -380,6 +386,20 @@ def linea_x1_date():
     if successful == 0:
         print("Vaya! No se han detectado líneas que acaben con un único salto el día especificado")
 
+def linea_llega_antes_de_1200():
+    successful = 0
+    for line in all_pairings:
+        legs_de_la_linea = devolver_legs_de_la_linea(line)
+        horas_de_la_linea = re.findall("\d{2}\:\d{2}", str(legs_de_la_linea))
+        landing_time_str = horas_de_la_linea[-1]
+        landing_time = datetime.strptime(landing_time_str, '%H:%M').time()
+        #print("Landing time: " + landing_time).
+        if landing_time <= time(12,00) and landing_time >= time(6,00):
+            successful = 1
+            imprimir_linea(line)
+    if successful == 0:
+        print("Vaya! No se han encontrado líneas que termínen más allá de la medianoche")
+
 def linea_llega_post_2330():
     successful = 0
     for line in all_pairings:
@@ -388,7 +408,7 @@ def linea_llega_post_2330():
         landing_time_str = horas_de_la_linea[-1]
         landing_time = datetime.strptime(landing_time_str, '%H:%M').time()
         #print("Landing time: " + landing_time).
-        if landing_time >= time(23,30) or landing_time <= time(6,00):
+        if landing_time >= time(23,30) or landing_time <= time(7,30):
             successful = 1
             imprimir_linea(line)
     if successful == 0:
