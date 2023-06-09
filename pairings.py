@@ -22,14 +22,16 @@ whitelisted_destinations = []
 lista_destinos_interesantes_detectados = [] # soft blacklist
 
 # First of all, generate an array called "all_pairings" where all pairings are stored for easy processing
-all_pairings = []
+all_pairings_disordered = []
 sheetfile = xlrd.open_workbook(file)
 sh = sheetfile.sheet_by_index(0)
 for rownum in range(sh.nrows):
     raw_pairing=sh.cell(rownum,0),sh.cell(rownum,1)
-    all_pairings.append(str(raw_pairing).replace('text:', ''))
+    all_pairings_disordered.append(str(raw_pairing).replace('text:', ''))
 # Eliminar línea vacía 'Pairing', 'Cupo/Pujas
-del all_pairings[0]
+del all_pairings_disordered[0]
+# Ordenar pairings según la fecha, para que luego se impriman ordenados
+all_pairings = sorted(all_pairings_disordered, key=lambda item: (item.split()[3]))
 
 # for pairing in all_pairings:
 #     print(pairing + "\r\n")
